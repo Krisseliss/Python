@@ -3,7 +3,7 @@ from tkinter import *
 from subprocess import Popen, PIPE
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import subprocess
-import os
+import os, signal
 
 
 def main_windows():
@@ -30,14 +30,35 @@ def main_windows():
 
 
 def process_windows():
+    global en1
     global process_window
     process_window = Toplevel()
     process_window.title("Confidential Guardian, Process Configuration")
-    process_window.geometry("800x600")
+    process_window.geometry("1000x600")
     process_window.configure(bg="dark grey")
-    label1 = Label(process_window, text="What Would you like to configure?", font=('arial', 12, 'bold'), bg="white",
+    label1 = Label(process_window, text="Specify a Process", font=('arial', 12, 'bold'), bg="white",
                    fg="black")
-    label1.pack(fill=X, pady=20)
+    label1.pack(pady=20)
+    en1 = StringVar()
+    e1 = Entry(process_window, textvariable=en1, font=('arial', 14, 'bold'))
+    e1.pack(pady=20)
+    e1.insert(END, ' ')
+    killbtn = Button(process_window, text="Kill process", font=('arial', 9, 'bold'), bg="light grey",
+                     fg="black", width="20",
+                     height="1", command=process)
+    killbtn.pack(pady=8)
+    findbtn = Button(process_window, text="Search for process", font=('arial', 9, 'bold'), bg="light grey",
+                     fg="black", width="20",
+                     height="1", command=searchfunc)
+    findbtn.pack(pady=8)
+
+
+def process():
+    procs = en1.get()
+    for line in os.popen("ps ax | grep " + procs + " | grep -v grep"):
+        fields = line.split()
+        pid = fields[0]
+        os.kill(int(pid), signal.SIGKILL)
 
 
 def firewall_windows():
@@ -81,17 +102,29 @@ def monitor_windows():
     label1.pack(fill=X, pady=20)
 
 
+def searchfunc():
+    search = en1.get()
+    texts = Text(process_window, height=150, width=130)
+    texts.pack()
+    cmd = ['ps', 'aux']
+    ps = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    cmd = ['grep', search]
+    grep = subprocess.Popen(cmd, stdin=ps.stdout, stdout=subprocess.PIPE,
+                            encoding='utf-8')
+    ps.stdout.close()
+    output, _ = grep.communicate()
+    python_processes = output.split('\n')
+    texts.insert(END, python_processes)
+
+
 def showlayout():
-    global count
     global text
     text = Text(firewall_window, height=150, width=124)
     text.pack()
-    p = Popen(["iptables", '-L', '-v', '-n'], stdout=PIPE, stderr=PIPE)
-    if text.winfo_exists() > 0:
-        text.pack_forget()
-    elif text.winfo_exists() > 1:
+    with Popen(["iptables", '-L', '-v', '-n'], stdout=PIPE, stderr=PIPE) as p:
         for line in p.stdout:
             text.insert(END, line)
+
 
 def clearlayout():
     text.pack_forget()
@@ -146,7 +179,7 @@ def iptable_editor():
 
 def showlayout2():
     # subprocess.run(["iptables-restore", '<', '/home/kali/iptbl.rules'])
-    os.system("iptables-restore < /home/kali/iptbl.rules")
+    os.system("iptables-restore < /home/stevejablonsky/iptbl.rules")
 
 
 main_windows()
