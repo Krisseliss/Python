@@ -1,9 +1,9 @@
 #!/bin/bash
-from tkinter import *
+import os
+import signal
 from subprocess import Popen, PIPE
+from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
-import subprocess
-import os, signal
 
 
 def main_windows():
@@ -22,8 +22,9 @@ def main_windows():
     btnfw = Button(main_window, text="Firewall", font=('arial', 9, 'bold'), bg="light grey", fg="black", width="30",
                    height="2", command=firewall_windows)
     btnfw.pack(pady=20)
-    btnmon = Button(main_window, text="AIDE", font=('arial', 9, 'bold'), bg="light grey", fg="black", width="30",
-                    height="2", command=lambda: monitor_windows())
+    btnmon = Button(main_window, text="System Monitoring", font=('arial', 9, 'bold'), bg="light grey", fg="black",
+                    width="30",
+                    height="2", command=monitor_windows)
     btnmon.pack(pady=20)
 
     main_window.mainloop()
@@ -45,20 +46,39 @@ def process_windows():
     e1.insert(END, ' ')
     killbtn = Button(process_window, text="Kill process", font=('arial', 9, 'bold'), bg="light grey",
                      fg="black", width="20",
-                     height="1", command=process)
+                     height="1", command=killprocess)
     killbtn.pack(pady=8)
     findbtn = Button(process_window, text="Search for process", font=('arial', 9, 'bold'), bg="light grey",
                      fg="black", width="20",
                      height="1", command=searchfunc)
     findbtn.pack(pady=8)
+    clearps = Button(process_window, text="clear text", font=('arial', 9, 'bold'), bg="light grey",
+                     fg="black", width="20",
+                     height="1", command=clearlayoutps)
+    clearps.pack(pady=8)
 
 
-def process():
+def clearlayoutps():
+    texts.pack_forget()
+
+
+def killprocess():
     procs = en1.get()
     for line in os.popen("ps ax | grep " + procs + " | grep -v grep"):
         fields = line.split()
         pid = fields[0]
         os.kill(int(pid), signal.SIGKILL)
+
+
+def searchfunc():
+    global texts
+    search = en1.get()
+    texts = Text(process_window, height=150, width=300)
+    texts.pack()
+    p = Popen(['ps', 'aux'], stdout=PIPE)
+    o = Popen(['grep', search], stdin=p.stdout, stdout=PIPE)
+    for line in o.stdout:
+        texts.insert(END, line)
 
 
 def firewall_windows():
@@ -92,31 +112,6 @@ def firewall_windows():
     clearbtn.pack(pady=8)
 
 
-def monitor_windows():
-    monitor_window = Toplevel(main_window)
-    monitor_window.title("Confidential Guardian, AIDE Configuration")
-    monitor_window.geometry("800x600")
-    monitor_window.configure(bg="dark grey")
-    label1 = Label(monitor_window, text="What Would you like to configure?", font=('arial', 12, 'bold'), bg="white",
-                   fg="black")
-    label1.pack(fill=X, pady=20)
-
-
-def searchfunc():
-    search = en1.get()
-    texts = Text(process_window, height=150, width=130)
-    texts.pack()
-    cmd = ['ps', 'aux']
-    ps = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    cmd = ['grep', search]
-    grep = subprocess.Popen(cmd, stdin=ps.stdout, stdout=subprocess.PIPE,
-                            encoding='utf-8')
-    ps.stdout.close()
-    output, _ = grep.communicate()
-    python_processes = output.split('\n')
-    texts.insert(END, python_processes)
-
-
 def showlayout():
     global text
     text = Text(firewall_window, height=150, width=124)
@@ -128,6 +123,32 @@ def showlayout():
 
 def clearlayout():
     text.pack_forget()
+
+
+def showlayout2():
+    # subprocess.run(["iptables-restore", '<', '/home/kali/iptbl.rules'])
+    os.system("iptables-restore < /home/stevejablonsky/iptbl.rules")
+
+
+def iptable_editor():
+    global txt_edit
+    global updateme
+
+    updateme = Toplevel(firewall_window)
+    updateme.title("Iptables editor")
+    updateme.rowconfigure(0, minsize=800, weight=1)
+    updateme.columnconfigure(1, minsize=800, weight=1)
+
+    txt_edit = Text(updateme)
+    fr_buttons = Frame(updateme, relief=RAISED, bd=2)
+    btn_open = Button(fr_buttons, text="Open", command=open_file)
+    btn_save = Button(fr_buttons, text="Save As...", command=save_file)
+
+    btn_open.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+    btn_save.grid(row=1, column=0, sticky="ew", padx=5)
+
+    fr_buttons.grid(row=0, column=0, sticky="ns")
+    txt_edit.grid(row=0, column=1, sticky="nsew")
 
 
 def open_file():
@@ -156,30 +177,60 @@ def save_file():
     updateme.title(f"Text Editor Application - {filepath}")
 
 
-def iptable_editor():
-    global txt_edit
-    global updateme
+def monitor_windows():
+    global en2
+    global monitor_window
+    monitor_window = Toplevel()
+    monitor_window.title("Confidential Guardian, System Monitoring")
+    monitor_window.geometry("800x600")
+    monitor_window.configure(bg="dark grey")
+    en2 = StringVar()
+    label1 = Label(monitor_window, text="What Would you like to configure?", font=('arial', 12, 'bold'), bg="white",
+                   fg="black")
+    label1.pack(fill=X, pady=8)
+    e2 = Entry(monitor_window, textvariable=en2, font=('arial', 14, 'bold'))
+    e2.pack(pady=8)
+    e2.insert(END, ' ')
+    lsofbtn = Button(monitor_window, text="Search For Open Files", font=('arial', 9, 'bold'), bg="light grey",
+                     fg="black", width="20",
+                     height="1", command=monitor_srch)
+    lsofbtn.pack(pady=8)
+    clearlsof = Button(monitor_window, text="Clear Lsof", font=('arial', 9, 'bold'), bg="light grey",
+                       fg="black", width="20",
+                       height="1", command=lambda: [clearlsoftxt1(), clearlsoftxt()])
+    clearlsof.pack(pady=8)
+    nettrigg = Button(monitor_window, text="Monitor Netstat", font=('arial', 9, 'bold'), bg="light grey",
+                      fg="black", width="20",
+                      height="1", command=netstatmon)
+    nettrigg.pack(pady=8)
 
-    updateme = Toplevel(firewall_window)
-    updateme.title("Iptables editor")
-    updateme.rowconfigure(0, minsize=800, weight=1)
-    updateme.columnconfigure(1, minsize=800, weight=1)
 
-    txt_edit = Text(updateme)
-    fr_buttons = Frame(updateme, relief=RAISED, bd=2)
-    btn_open = Button(fr_buttons, text="Open", command=open_file)
-    btn_save = Button(fr_buttons, text="Save As...", command=save_file)
-
-    btn_open.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-    btn_save.grid(row=1, column=0, sticky="ew", padx=5)
-
-    fr_buttons.grid(row=0, column=0, sticky="ns")
-    txt_edit.grid(row=0, column=1, sticky="nsew")
+def netstatmon():
+    global netstat1
+    netstat1 = Text(monitor_window)
+    netstat1.pack(expand=True, fill="both")
+    with Popen(['netstat', '-l'], stdout=PIPE, stderr=PIPE) as p:
+        for line in p.stdout:
+            netstat1.insert(END, line)
 
 
-def showlayout2():
-    # subprocess.run(["iptables-restore", '<', '/home/kali/iptbl.rules'])
-    os.system("iptables-restore < /home/stevejablonsky/iptbl.rules")
+def monitor_srch():
+    global lsof1
+    lsofsearch = en2.get()
+    lsof1 = Text(monitor_window)
+    lsof1.pack(expand=True, fill="both")
+    x = Popen(['lsof'], stdout=PIPE, stderr=PIPE)
+    y = Popen(['grep', lsofsearch], stdin=x.stdout, stdout=PIPE, stderr=PIPE)
+    for line in y.stdout:
+        lsof1.insert(END, line)
+
+
+def clearlsoftxt():
+    lsof1.pack_forget()
+
+
+def clearlsoftxt1():
+    netstat1.pack_forget()
 
 
 main_windows()
