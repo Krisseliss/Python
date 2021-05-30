@@ -1,7 +1,7 @@
 #!/bin/bash
 import os
 import signal
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 
@@ -17,7 +17,7 @@ def main_windows():
     label1.pack(fill=X, pady=20)
 
     btnproc = Button(main_window, text="Process configuration", font=('arial', 9, 'bold'), bg="light grey", fg="black",
-                     width="30", height="2", command=lambda: process_windows())
+                     width="30", height="2", command=process_windows)
     btnproc.pack(pady=20)
     btnfw = Button(main_window, text="Firewall", font=('arial', 9, 'bold'), bg="light grey", fg="black", width="30",
                    height="2", command=firewall_windows)
@@ -26,6 +26,10 @@ def main_windows():
                     width="30",
                     height="2", command=monitor_windows)
     btnmon.pack(pady=20)
+    networkbtn = Button(main_window, text="Network Monitoring", font=('arial', 9, 'bold'), bg="light grey", fg="black",
+                        width="30",
+                        height="2", command=netwindows)
+    networkbtn.pack(pady=20)
 
     main_window.mainloop()
 
@@ -75,8 +79,8 @@ def searchfunc():
     search = en1.get()
     texts = Text(process_window, height=150, width=300)
     texts.pack()
-    p = Popen(['ps', 'aux'], stdout=PIPE)
-    o = Popen(['grep', search], stdin=p.stdout, stdout=PIPE)
+    p = Popen(['ps', 'aux'], stdout=PIPE, stderr=PIPE)
+    o = Popen(['grep', search], stdin=p.stdout, stdout=PIPE, stderr=PIPE)
     for line in o.stdout:
         texts.insert(END, line)
 
@@ -199,19 +203,6 @@ def monitor_windows():
                        fg="black", width="20",
                        height="1", command=lambda: [clearlsoftxt1(), clearlsoftxt()])
     clearlsof.pack(pady=8)
-    nettrigg = Button(monitor_window, text="Monitor Netstat", font=('arial', 9, 'bold'), bg="light grey",
-                      fg="black", width="20",
-                      height="1", command=netstatmon)
-    nettrigg.pack(pady=8)
-
-
-def netstatmon():
-    global netstat1
-    netstat1 = Text(monitor_window)
-    netstat1.pack(expand=True, fill="both")
-    with Popen(['netstat', '-l'], stdout=PIPE, stderr=PIPE) as p:
-        for line in p.stdout:
-            netstat1.insert(END, line)
 
 
 def monitor_srch():
@@ -231,6 +222,47 @@ def clearlsoftxt():
 
 def clearlsoftxt1():
     netstat1.pack_forget()
+
+
+def netwindows():
+    global en2
+    global netwindow
+    netwindow = Toplevel()
+    netwindow.title("Confidential Guardian, System Monitoring")
+    netwindow.geometry("800x600")
+    netwindow.configure(bg="dark grey")
+    en2 = StringVar()
+    label1 = Label(netwindow, text="What Would you like to view?", font=('arial', 12, 'bold'), bg="white",
+                   fg="black")
+    label1.pack(fill=X, pady=8)
+
+    tcpdumpbtn = Button(netwindow, text="TCPDUMP", font=('arial', 9, 'bold'), bg="light grey",
+                        fg="black", width="20",
+                        height="1", command=tcpdumpfunction)
+    tcpdumpbtn.pack(pady=8)
+    nettrigg = Button(netwindow, text="Monitor Netstat", font=('arial', 9, 'bold'), bg="light grey",
+                      fg="black", width="20",
+                      height="1", command=netstatmon)
+    nettrigg.pack(pady=8)
+
+
+def netstatmon():
+    global netstat1
+    netstat1 = Text(netwindow)
+    netstat1.pack(expand=True, fill="both")
+    with Popen(['netstat', '-l', '-p'], stdout=PIPE, stderr=PIPE) as p:
+        for line in p.stdout:
+            netstat1.insert(END, line)
+
+
+def tcpdumpfunction():
+    dump = Text(netwindow)
+    dump.pack(expand=True, fill="both")
+    k = Popen('tcpdump -l -v -U', stdout=PIPE,
+              stderr=STDOUT, shell=TRUE)
+    for line in k.stdout:
+        dump.insert(END,  line)
+        print(line)
 
 
 main_windows()
