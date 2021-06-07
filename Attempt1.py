@@ -1,13 +1,15 @@
 #!/bin/bash
 import os
 import signal
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE
 from tkinter import *
+from tkinter import Tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
+
+global main_window
 
 
 def main_windows():
-    global main_window
     main_window = Tk()
     main_window.title("Confidential Guardian, Linux Automation Tool")
     main_window.geometry("1000x700")
@@ -97,19 +99,19 @@ def firewall_windows():
                    fg="black")
     label1.pack(fill=X, pady=8)
 
-    updatebtn = Button(firewall_window, text="View Current Iptables layout", font=('arial', 9, 'bold'), bg="light grey",
-                       fg="black", width="20",
-                       height="1", command=showlayout)
-    updatebtn.pack(pady=8)
+    viewbtn = Button(firewall_window, text="View Current Iptables layout", font=('arial', 9, 'bold'), bg="light grey",
+                     fg="black", width="20",
+                     height="1", command=showlayout)
+    viewbtn.pack(pady=8)
     confbtn = Button(firewall_window, text="Edit iptables", font=('arial', 9, 'bold'), bg="light grey",
                      fg="black", width="20",
                      height="1", command=iptable_editor)
     confbtn.pack(pady=8)
 
-    restorebtn = Button(firewall_window, text="Update iptables", font=('arial', 9, 'bold'), bg="light grey",
-                        fg="black", width="20",
-                        height="1", command=showlayout2)
-    restorebtn.pack(pady=8)
+    updatebtn = Button(firewall_window, text="Update iptables", font=('arial', 9, 'bold'), bg="light grey",
+                       fg="black", width="20",
+                       height="1", command=showlayout2)
+    updatebtn.pack(pady=8)
     clearbtn = Button(firewall_window, text="Clear Layout", font=('arial', 9, 'bold'), bg="light grey",
                       fg="black", width="20",
                       height="1", command=clearlayout)
@@ -130,7 +132,6 @@ def clearlayout():
 
 
 def showlayout2():
-    # subprocess.run(["iptables-restore", '<', '/home/kali/iptbl.rules'])
     os.system("iptables-restore < /home/stevejablonsky/iptbl.rules")
 
 
@@ -201,8 +202,20 @@ def monitor_windows():
     lsofbtn.pack(pady=8)
     clearlsof = Button(monitor_window, text="Clear Lsof", font=('arial', 9, 'bold'), bg="light grey",
                        fg="black", width="20",
-                       height="1", command=lambda: [clearlsoftxt1(), clearlsoftxt()])
+                       height="1", command=clearlsoftxt)
     clearlsof.pack(pady=8)
+    logcheckbtn = Button(monitor_window, text="Open Logs", font=('arial', 9, 'bold'), bg="light grey",
+                         fg="black", width="20",
+                         height="1", command=logcheckout)
+    logcheckbtn.pack(pady=8)
+
+
+def logcheckout():
+    lsof2 = Text(monitor_window, height=150, width=124)
+    lsof2.pack()
+    with Popen(['sudo', '-u', 'logcheck', 'logcheck', '-o', 'LOG'], stdout=PIPE, stderr=PIPE) as h:
+        for line in h.stdout:
+            lsof2.insert(END, line)
 
 
 def monitor_srch():
@@ -220,18 +233,12 @@ def clearlsoftxt():
     lsof1.pack_forget()
 
 
-def clearlsoftxt1():
-    netstat1.pack_forget()
-
-
 def netwindows():
-    global en2
     global netwindow
     netwindow = Toplevel()
-    netwindow.title("Confidential Guardian, System Monitoring")
+    netwindow.title("Confidential Guardian, Network Monitoring")
     netwindow.geometry("800x600")
     netwindow.configure(bg="dark grey")
-    en2 = StringVar()
     label1 = Label(netwindow, text="What Would you like to view?", font=('arial', 12, 'bold'), bg="white",
                    fg="black")
     label1.pack(fill=X, pady=8)
@@ -244,6 +251,14 @@ def netwindows():
                       fg="black", width="20",
                       height="1", command=netstatmon)
     nettrigg.pack(pady=8)
+    cleartxt = Button(netwindow, text="Clear", font=('arial', 9, 'bold'), bg="light grey",
+                      fg="black", width="20",
+                      height="1", command=clearlsoftxt1)
+    cleartxt.pack(pady=8)
+
+
+def clearlsoftxt1():
+    netstat1.pack_forget()
 
 
 def netstatmon():
@@ -255,14 +270,14 @@ def netstatmon():
             netstat1.insert(END, line)
 
 
+# Does not work, can be configured to print the output in realtime to the IDE console, but not in the GUI#
 def tcpdumpfunction():
     dump = Text(netwindow)
     dump.pack(expand=True, fill="both")
-    k = Popen('tcpdump -l -v -U', stdout=PIPE,
-              stderr=STDOUT, shell=TRUE)
-    for line in k.stdout:
-        dump.insert(END,  line)
-        print(line)
+    x = Popen(['tcpdump', '-l', '>', 'dat', '&', 'tail', '-f', 'dat'], stdout=PIPE, stderr=PIPE, shell=TRUE,
+              universal_newlines=TRUE)
+    for line in x.stdout:
+        dump.insert(END, line)
 
 
 main_windows()
